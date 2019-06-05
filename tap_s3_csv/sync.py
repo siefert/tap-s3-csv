@@ -59,20 +59,20 @@ def sync_table_file(config, s3_path, table_spec, stream):
 
     records_synced = 0
 
-    for row in iterator:
-        custom_columns = {
-            s3.SDC_SOURCE_BUCKET_COLUMN: bucket,
-            s3.SDC_SOURCE_FILE_COLUMN: s3_path,
+    with Transformer() as transformer:
+        for row in iterator:
+            custom_columns = {
+                s3.SDC_SOURCE_BUCKET_COLUMN: bucket,
+                s3.SDC_SOURCE_FILE_COLUMN: s3_path,
 
-            # index zero, +1 for header row
-            s3.SDC_SOURCE_LINENO_COLUMN: records_synced + 2
-        }
-        rec = {**row, **custom_columns}
+                # index zero, +1 for header row
+                s3.SDC_SOURCE_LINENO_COLUMN: records_synced + 2
+            }
+            rec = {**row, **custom_columns}
 
-        with Transformer() as transformer:
             to_write = transformer.transform(rec, stream['schema'], metadata.to_map(stream['metadata']))
 
-        singer.write_record(table_name, to_write)
-        records_synced += 1
+            singer.write_record(table_name, to_write)
+            records_synced += 1
 
     return records_synced
